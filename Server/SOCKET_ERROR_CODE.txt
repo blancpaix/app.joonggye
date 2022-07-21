@@ -1,0 +1,7 @@
+JOIN_ROOM_ERROR_CODE      
+  EJ001: 채팅방이 존재하지 않습니다.
+  EJ002 : 허용 인원을 초과하였습니다.
+  EJ003 : 비밀번호가 일치하지 않습니다.
+
+AGGRO_SEND_ERR_CODE
+  EA001: 어그로를 끌기에 늦었습니다.

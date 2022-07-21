@@ -1,0 +1,6 @@
+Client/firebase.json
+Client/android/gradle.properties
+Client/android/app/google-services.json
+Cloud functions/functions/jg-firebase-v2-a1000.json
+Server/fbServiceAccountKey.json
+Server Management/src/firebaseFn.js

@@ -1,0 +1,33 @@
+{
+  "name": "socket_server",
+  "version": "1.0.0",
+  "description": "]",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cross-env NODE_ENV=dev nodemon app",
+    "testpro": "cross-env nodemon app ",
+    "start": "cross-env pm2 start app.js "
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "firebase": "8.2.4",
+    "firebase-admin": "^9.10.0",
+    "helmet": "^4.6.0",
+    "lodash": "^4.17.21",
+    "pm2": "^5.1.2",
+    "shortid": "^2.2.16",
+    "socket.io": "^3.0.4",
+    "winston": "^3.3.3",
+    "winston-daily-rotate-file": "^4.5.5"
+  },
+  "devDependencies": {
+    "morgan": "^1.10.0",
+    "nodemon": "2.0.6"
+  }
+}
