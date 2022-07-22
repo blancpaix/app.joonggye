@@ -292,8 +292,8 @@ const createFavoriteProgramCountor = async (programUID) => {
     })
 };
 
-// program Maker 너무 두루뭉술하다...
 
+// program Maker 너무 두루뭉술하다...
 const programMaker = async () => {
   tvGuideGroupByBroadcastorMap.forEach(async (scheduleSet, broadcastor) => {
     functions.logger.info('programMaker init - Broadcastor: ', broadcastor);
