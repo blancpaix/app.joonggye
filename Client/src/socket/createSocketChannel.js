@@ -271,6 +271,7 @@ export function leaveRoomFunc(roomUID) {
   socket.emit('leaveRoom', roomUID);
 };
 
+// message : { type, roomId, msg, userUID, }
 export function sendMsg(message) {
   if (!socket.connected) return;
   socket.emit('chat', message);

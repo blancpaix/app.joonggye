@@ -1,0 +1,359 @@
+Functions parameter
+
+SESSION
+  세션 확인
+    saga : checkSession_fb
+      { null }
+      return Firebase auth().currentUser;
+  
+  프로필 업데이트
+    firebase : FB_updateProfile
+      { 
+        photoURL? : string,
+        displayName? : string,
+      }
+      return Firebase auth().currentUser;
+
+    firebase :  FB_uploadProfileImg
+      {
+        phoneNumber: string,
+        img: string,
+      };
+      return imagePath;
+
+    saga : updateProfile
+      {
+        displayName? : string,
+        phoneNumber? : string,
+        img? : Object,
+      }
+      
+      return FB_updateProfile();
+    
+  로그아웃
+    firebase : FB_dropout
+      { null }
+
+    saga : signout_fb
+      { null }
+    
+    
+  회원 탈퇴
+    saga : dropout_fb
+      {
+        auth().currentUser : Object,
+      };
+
+  좋아하는 프로그램 불러오기
+    firebase : FB_loadFavorites
+      {
+        userUID: string,
+      }
+      return [
+        { 
+          titleBroad: string, 
+          createdAt: timestamp 
+        },
+        ... 
+      ];
+
+    saga : loadFavorites_fb
+      {
+        userUID : String
+      };
+      return FB_loadFavorites();
+
+  좋아하는 프로그램 추가 
+    firebase : FB_trxAddFavProgram
+      {
+        userUID : string,
+        programUID : string,
+        titleBroad : stiring,
+      }
+
+    saga : addFavoriteProgram
+      {
+        userUID : string,
+        programUID : string,
+        titleBroad : stiring,
+      }
+      return { id: string, titleBroad: title, createdAt: timestamp };
+  
+  좋아하는 프로그램 제거 
+    firebase : FB_trxDelFavProgram
+      {
+        userUID : string,
+        programUID : string,
+      }
+
+    saga : deleteFavoriteProgram
+      {
+        userUID : string,
+        programUID : string,
+      }
+      return { programUID: string };
+
+
+Service
+  본인 인증번호 발송 
+    saga : verifyPhoneNumber_fb
+      {
+        phoneNumber : int
+      }
+  
+  본인 인증 확인  
+    saga : confirmVerifyPhone_fb
+      {
+        verifier : Object,
+        verifyCode : int
+      }
+      return Firebase auth().currentUser;
+
+  어그로 목록 불러오기 
+    firebase : FB_loadAggros
+      {
+        userUID: string,
+        limitCout: int,
+        lastLoadedAggro: int,
+        isEndAggros: boolean,
+      }
+      return [
+        {
+          id: string,
+          createdAt: timestamp, 
+          down: int, 
+          up: int, 
+          msg: string, 
+          titleBroad: string 
+        },
+        ...
+      ];
+
+    saga : loadAggros_fb
+      {
+        userUID : string
+      };
+      return FB_loadAggros();
+
+  공지사항 불러오기 
+    firebase : FB_loadNotices
+      {
+        limitCount: int
+      }
+      return [
+        { 
+          id: string, 
+          title: string, 
+          content: string, 
+          img?: string, 
+          createdAt: timestamp
+        },
+        ...
+      ];
+
+    saga : loadNotices_fb
+      { null }
+      return FB_loadNotices();
+
+   서비스 이용 약관 불러오기
+    firebase : FB_loadTerms
+      { null }
+      return [
+        {
+          id: string,
+          title: string,
+          content: stirng, 
+          img?: string, 
+          reatedAt: timestamp 
+        }, ... 
+      ];
+
+    saga : loadTerms_fb
+      { null }
+      return FB_loadTerms();
+
+
+Program
+  방송중인 프로그램 불러오기 
+    saga : loadSchedules
+      { null }
+      return [
+        {
+          scheduleId: string,
+          broadcastor: string,
+          endAt: timestamp,
+          genre: string,
+          img?: string, 
+          limit: string,
+          programUID: string,
+          re: boolean,
+          startAt: timestamp,
+          subTitle1?: string,
+          subTitle2 : string,
+          title : string
+          },
+          ...
+        ];
+
+  프로그램 좋아요 수 불러오기 
+    firebase : FB_loadFavCnt
+      {
+        programUID : string,
+      }
+      return likes: int;
+
+    saga : loadFavCntPrgram
+      {
+        programUID : string,
+      }
+      return FB_loadFavCnt();
+
+  편성표 불러오기 
+    firebase : FB_loadAirTable
+      {
+        dateBroadcastor: string
+      }
+      return [
+        {
+          genre: string,
+          limit: string,
+          sTime: string,
+          subTitle1?: string,
+          subTitle2?: string,
+          title: string,
+        },
+        ...
+      ];
+
+    saga : loadAirTable
+      {
+        dateBroadcastor: string
+      }
+      return FB_loadAirTable();
+
+  프로그램 찾아보기 
+    firebase : FB_searchByTitle
+      { 
+        programName: string,
+      }
+            return [
+        {
+          airTime: Array,
+          borad_title: string,
+          broadcastor: string,
+          genre: string,
+          img? : string,
+          limit: string,
+          title: string,
+        },
+        ...
+      ]
+
+    saga : searchProgarms
+      {
+        programName: string
+      }
+      return FB_searchByTitle();
+
+
+CHAT
+  // 소켓 연결 담당
+  소켓 채널 생성
+    saga : buildSocket
+      {
+        namespace: string,
+        userUID: string,
+        displayName: string,
+        photoURL?: string,
+        phoneNumber: stirng,
+      }
+      return Socket channel;
+
+  // 채팅방 목록의 인원수 증감, 채팅방 생성 및 삭제 담당
+  채팅방 소켓 채널 생성
+    saga : listenRoom
+      {
+        roomId? : string,
+      };
+      return Socket channel;
+
+  // 해당 채팅방의 인원 출입, 어그로 메시지 관련 기능 담당
+  채팅 소켓 채널 생성
+    saga : listenChat
+      { null }
+      return Socket channel;
+
+  // 채팅 메시지 담당
+  채팅 메시지 소켓 채널 생성
+    saga : listenMsg
+      { null }
+      return Socket channel;
+
+  // 어그로 메시지의 점수 증감 담당
+  어그로 점수 소켓 채널 생성
+    saga : listenAggroPoint
+      { null }
+      return Socket.channel;
+
+
+  채팅방 생성 요청
+    saga : createRoom
+      {
+        scheduleUID: string,
+        title: string,
+        max: int,
+        password?: string,
+      }
+    
+    socket : createRoomFunc
+      {
+        scheduleUID: string,
+        title: string,
+        max: int,
+        password?: string,
+      }
+
+  채팅방 목록 불러오기 요청
+    saga : refreshRooms
+      { null }
+    
+    socket : loadRoomFunc
+      { null }
+
+  채팅방 접속 요청
+    saga : joinRoom
+      { 
+        roomId: string,
+        password?: string,
+      }
+
+    socket : joinRoomFunc
+      { 
+        roomId: string,
+        password?: string,
+      }
+      
+  채팅방 참가자 목록 요청
+    socket : loadUsersFunc
+      { null }
+  
+  채팅방 나가기 요청
+    socket : leaveRoomFunc
+      { roomUID : string }
+  
+  채팅 메시지 전송
+    socket : sendMsg
+      { 
+        type: string,
+        roomId: string,
+        msg: string,
+        userUID: string,
+      }
+
+  어그로 점수 올리기
+    socket : sendAggroUp
+      { aggroUID : string }
+  
+  어그로 점수 내리기
+    socket : sendAggroDown
+      { aggroUID : string }

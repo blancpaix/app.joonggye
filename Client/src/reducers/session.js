@@ -31,8 +31,6 @@ export const initialState = {
 
   // 차단된 유저 목록 (세션 끊어지면 삭제)
   blockedUsers: {},
-  addedBlockUser: null,
-  deletedBlockUser: null,
 };
 
 export const CHECK_SESSION_REQ = 'CHECK_SESSION_REQ';
