@@ -1,0 +1,171 @@
+클라이언트에서의 원활한 서버 통신을 위해 serverless platform이 아닌 별도의 소켓 서버를 운영하고있습니다.
+소켓 서버는 차후 확장성을 고려해 현재 방송중인 프로그램의 scheduleUID에 따라 socket.io의 namespace를 달리 두어 서버를 확장할 수 있도록 구성하였습니다. 또한 사용자의 보안성을 위해 서버와 클라이언트간 이뤄지는 모든 소켓 통신은 SSL 프로토콜을 통해 암호화됩니다.
+
+소켓 서버는 클라이언트에서 전달되는 데이터를 기반으로 미들웨어를 통해 일련의 과정을 거쳐 유저를 확인하여 연결됩니다. 연결이 되면 해당 프로그램의 채팅방 목록 데이터를 주고받는 특정 room에 자동으로 접속되어 정상적인 서비스를 이용할 수 있습니다.
+
+잦은 데이터 교환이 이뤄지는 소켓 통신 특성상 트래픽을 줄이기 위해 특정 이벤트에는 데이터를 모아 일정 시간이 지난 후 메시지를 전달하도록 하였습니다.
+
+
+Event list
+  'connect'
+    소켓 연결 시 namespace로 전달된 이름의 room(채팅방 목록 전달 목적)에 접속
+  
+  'connect_error'
+    소켓 연결 에러 로그로 기록
+  
+  'loadRooms'
+    to : specific user
+    event : 'loadRooms'
+    data : [
+      {
+        roomId : string,
+        title : string,
+        max : int,
+        count : int,
+      }, ...
+    ];
+
+  'loadUsers'
+    to : specific user
+    event : 'loadUsers
+    data : [
+      {
+        userUID : string,
+        displayName : string,
+        photoURL? : string,
+      }, ...
+    ];
+
+  'createRoom'
+    to : specific user
+    event : 'createRoomReq
+    data : {
+      result : boolean
+    }
+
+    to : room users (채팅방 목록)
+    event : 'addRoom'
+    data : {
+      roomId : string,
+      title : string,
+      count : int,
+      max : int,
+    }
+
+  'joinRoom'
+    to : specific user
+    event : 'joinRoomReq'
+    data : {
+      result : boolean,
+      err? : string
+    }
+
+    to : room users (채팅방 목록)
+    event : 'count'
+    data : {
+      roomId : string,
+      count : int
+    }
+
+    to : room users (참가중인 채팅)
+    event : 'joinRoom'
+    data : {
+      userUID : string,
+      photoURL : string,
+    }
+  
+  'leaveRoom'
+    to : room users (참가중인 채팅)
+    event : 'leaveRoom'
+    data : {
+      userUID : string,
+      displayName : string,
+    }
+
+    to : room users (채팅방 목록)
+    event : 'count'
+    data : {
+      roomId : string,
+      count : int
+    }
+
+    to : room users (채팅방 목록)
+    event : 'deleteRoom'
+    data : { roomId : string }
+
+  'disconnect'
+    to : room users (참가중인 채팅)
+    event : 'leaveRoom'
+    data : {
+      userUID : string,
+      displayName : string,
+    }
+
+    to : room users (채팅방 목록)
+    event : 'count'
+    data : {
+      roomId : string,
+      count : int
+    }
+
+    to : room users (채팅방 목록)
+    event : 'deleteRoom'
+    data : { roomId : string }
+
+
+  'chat'
+    to : room users (참가중인 채팅)
+    event : 'chat'
+    data : {
+      displayName : string,
+      msg : string,
+      roomId : string,
+      type : string,
+      userUID : string,
+      
+      titleBroad? : string,
+    }
+
+    to : room users (참가중인 채팅)
+    event : 'aggro'
+    data : {
+      displayName : string,
+      msg : string,
+      roomId : string,
+      type : string,
+      userUID : string,
+
+      aggroUID : string,
+      photoURL? : string,
+    }
+
+    to : specific user
+    event : 'aggroErr',
+    data : ( ERROR_CODE : string ) 
+
+    to : room users (참가중인 채팅)
+    event : 'stopAggro'
+    data : ( aggroUID : string )
+
+  
+  'aggroUp'
+    to : room users (참가중인 채팅)
+    event : 'aggroPoint'
+    data : {
+      aggroUID : string,
+      point : int 
+    }
+    emit_per : 500ms
+  
+  'aggroDown'
+    to : room users (참가중인 채팅)
+    event : 'aggroPoint'
+    data : {
+      aggroUID : string,
+      point : int 
+    }
+    emit_per : 500ms
+  
+  
+
+
