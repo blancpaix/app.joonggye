@@ -1,16 +1,16 @@
 
-"중계"서비스는 실시간으로 방송중이 프로그램 데이터를 기반으로 작동하고 있습니다. 현재 방송 편성 데이터는 별도의 API로 제공되고 있지 않아 부득이하게 크롤러를 활용하여 데이터를 가공하여 사용하고 있으며, LG U플러스 홈페이지("https://www.lguplus.com/iptv/channel-guide")에서 제공되는 방송 편성표를 활용중입니다.
-크롤링을 통해 얻는 데이터는 각 방송사 별 방송 편성표와 방송 프로그램에 대한 정보이며 클라우드 컴퓨팅 환경에서 데이터 가공 과정을 거쳐 최종적으로 아래와 같은 형식의 데이터로 데이터베이스에 저장합니다.
+"중계"서비스는 실시간으로 방송중인 프로그램 데이터를 기반으로 운영되고 있습니다. 현재 방송 편성 데이터는 별도의 API로 제공되고 있지 않아 부득이하게 크롤러를 활용하여 데이터를 가공하여 사용하고 있으며, LG U플러스 홈페이지("https://www.lguplus.com/iptv/channel-guide")에서 제공되는 방송 편성표를 활용합니다.
+크롤링을 통해 얻는 데이터는 각 방송사 별 방송 편성표와 방송 프로그램에 대한 정보입니다. 클라우드 컴퓨팅 환경에서 위에서 얻은 데이터의 가공과정을 거쳐 아래 형식의 데이터들을 수집하며 최종적으로 각 목적에 알맞게 저장됩니다.
   {
     broadcastor : string,
-    title : string,
-    subTitle1? : string,
-    subTitle2? : string,
+    endAt : timestamp,
     genre : string,
     limit : string,
-    startAt : timestamp,
-    endAt : timestamp,
     programUID : string,
+    subTitle1? : string,
+    subTitle2? : string,
+    startAt : timestamp,
+    title : string,
   }
 
-크롤러는 Google Cloud Functions을 활용하여 특정시간에 동작하고 중지되도록 이벤트 스케줄러을 통해 컴퓨팅 비용을 줄였으며, Puppeteer.js 라이브러리를 사용하여 구현되었습니다.
+크롤러는 Google Cloud Functions을 활용하여 특정시간에 동작하고 중지되도록 이벤트 스케줄러을 통해 컴퓨팅 비용을 줄였으며, Puppeteer.js 라이브러리를 활용하여 구현되었습니다.
