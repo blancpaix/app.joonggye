@@ -1,0 +1,22 @@
+서비스 구성
+  클라이언트
+    React-Native
+
+  채팅 서버 (AWS Lightsail)
+    Node.js (socket.io)
+
+  서버리스 컴퓨팅 (Firebase)
+    Authentication
+    Firestore Database
+    Realtime Database
+    Stroage
+
+  크롤러 (Google Cloud Platform)
+    Node.js (puppeteer.js)
+
+  실시간 업데이트 함수  (Google Cloud Platform)
+    Cloud function
+
+  도메인
+    Namecheap.com 에서 "joonggye.live" 도메인 구입
+
