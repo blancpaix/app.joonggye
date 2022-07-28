@@ -18,9 +18,9 @@
 <br />
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/54240763/181058616-dec89ccf-dee6-43cf-bbd2-c9963239dca2.png" width="33%" align="left" alt="main_screen">
-  <img src="https://user-images.githubusercontent.com/54240763/181058610-43070a42-951e-4938-ae6f-5563b22c3119.png" width="33%" align="center" alt="tv_guid_screen">
-  <img src="https://user-images.githubusercontent.com/54240763/181058605-ee70517f-d80e-4991-b994-c674fca50c42.png" width="33%"  align="right" alt ="chat_room_list">
+  <img src="https://user-images.githubusercontent.com/54240763/181058616-dec89ccf-dee6-43cf-bbd2-c9963239dca2.png" width="31%" align="left" alt="main_screen">
+  <img src="https://user-images.githubusercontent.com/54240763/181058610-43070a42-951e-4938-ae6f-5563b22c3119.png" width="31%" align="center" alt="tv_guid_screen">
+  <img src="https://user-images.githubusercontent.com/54240763/181058605-ee70517f-d80e-4991-b994-c674fca50c42.png" width="31%"  align="right" alt ="chat_room_list">
 
   <br />
 
@@ -35,9 +35,9 @@
 
 <p align="center">
   
-  <img src="https://user-images.githubusercontent.com/54240763/181058614-51101815-02b1-4486-9a47-b122016c6fbe.png" width="33%" align="left" alt ="on_chat" >
-  <img src="https://user-images.githubusercontent.com/54240763/181058597-1e2208dc-349a-41bf-8e45-f1d08751d47d.png" width="33%" align="center" alt="on_chat_drawer">
-  <img src="https://user-images.githubusercontent.com/54240763/181058608-36f2773f-6638-4f44-9b31-c6a63e04d8c5.png" width="33%" align="right" 
+  <img src="https://user-images.githubusercontent.com/54240763/181058614-51101815-02b1-4486-9a47-b122016c6fbe.png" width="31%" align="left" alt ="on_chat" >
+  <img src="https://user-images.githubusercontent.com/54240763/181058597-1e2208dc-349a-41bf-8e45-f1d08751d47d.png" width="31%" align="center" alt="on_chat_drawer">
+  <img src="https://user-images.githubusercontent.com/54240763/181058608-36f2773f-6638-4f44-9b31-c6a63e04d8c5.png" width="31%" align="right" 
   alt="on_chat_aggro_feature">
 
   <br />
