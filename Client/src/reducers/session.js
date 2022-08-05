@@ -29,7 +29,7 @@ export const initialState = {
   deleteFavProgramHit: false,
   deleteFavProgramErr: null,
 
-  // 차단된 유저 목록 (세션 끊어지면 삭제)
+  // 차단된 유저 목록 (클라이언트 삭제 시 초기화)
   blockedUsers: {},
 };
 
