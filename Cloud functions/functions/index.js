@@ -1,7 +1,7 @@
 const functions = require('firebase-functions');
 const { runCralwer } = require('./manager');
 const { trxMoveOntimeSchedules, trxRemoveEndedPrograms, isCrawling, getCrawlingDueList } = require('./db');
-const { UTC9 } = require('./Constant');
+const { UTC9, RGX_CHECK, RGX_TODAY, RGX_TWO, DEFAULT_TARGET_HOURS, } = require('./Constant');
 require('dotenv').config();
 
 // 시간은 region 상관없이 UTC로 입력됨. new Date() 마찬가지, 한국 시간쓰려면 UTC9 설정
@@ -26,6 +26,7 @@ exports.scheduleCralwer = functions
     maxInstances: 1,
   })
   .pubsub.schedule('0 2 * * *')
+  // .pubsub.schedule('*/30 2-6 * * *')   // call Crawler 가 완벽하게 작동하면 변경
   .timeZone('Asia/Seoul')
   .onRun(async () => {
     const targetDate = new Date();
@@ -36,7 +37,7 @@ exports.scheduleCralwer = functions
     try {
       const dueList = await getCrawlingDueList(date);
       if (typeof dueList === 'boolean') {
-        console.log('Already done!');
+        functions.logger.info('ERR-scheduleCralwer@Already done!');
         return false;
       }
 
@@ -80,32 +81,37 @@ exports.callcrawler = functions
       return res.status(401).send();
     }
 
-    const input = req.body.event.text.split(" ");
-    const option = input[1];
-    if (option !== undefined || option !== null || option !== 'today' || option !== 'two') {
+    const input = req.body.event.text;
+    const rID = RGX_CHECK.test(input);
+    const rToday = RGX_TODAY.test(input);
+    const rTwo = RGX_TWO.test(input);
+    if (!rID && !rToday && !rTwo) {
       return res.status(400).send();
     }
+
     // default target : tomorrow
-    let targetHours = UTC9 + 24;
-    if (option === "today") {
-      targetHours = UTC9;
-    } else if (option === "two") {
-      targetHours = UTC9 + 48;
+    let targetHours = DEFAULT_TARGET_HOURS // 33
+    if (rToday) {
+      targetHours = UTC9; // 9
+    } else if (rTwo) {
+      targetHours = UTC9 + 48; // 57
     }
 
     try {
       const targetDate = new Date();
       targetDate.setHours(targetDate.getHours() + targetHours);
       const date = new Date(targetDate).toISOString().substring(0, 10).replace(/-/g, '');
+      functions.logger.info('Target date, Options : ', date, targetHours);
       const dueList = await getCrawlingDueList(date);
+
       if (typeof dueList === 'boolean') {
-        console.log('Already done!');
+        functions.logger.info('ERR@Already done!');
         return res.status(406).send('Already done!');
       }
 
-      await runCralwer(date, dueList, input[1]);
+      await runCralwer(date, dueList, targetHours);
     } catch (err) {
-      console.error('Run crawler error! ', err)
+      functions.logger.info('ERR@Cannot running crawler!', err);
       return res.status(503).send('crawling err!');
     }
 
@@ -117,4 +123,10 @@ exports.callcrawler = functions
 // firebase functions:delete [myFunction]
 
 // =local crawling
-// runCralwer();
+// const targetDate = new Date();
+// targetDate.setHours(targetDate.getHours() + UTC9 + 24);
+// const date = new Date(targetDate).toISOString().substring(0, 10).replace(/-/g, '');
+// functions.logger.log('START Schedule Cralwer', new Date(), 'utc9+24 serverdate : ', date);
+
+// const dueList = null;
+// runCralwer(date, dueList, DEFAULT_TARGET_HOURS);

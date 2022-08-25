@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const functions = require('firebase-functions');
-const { PUPPETEER_TIMEOUT, UTC9 } = require('../Constant');
+const { PUPPETEER_TIMEOUT } = require('../Constant');
 
 class CustomPage {
   constructor(browser, page) {
@@ -10,12 +10,13 @@ class CustomPage {
 
   static async launch() {
     const browser = await puppeteer.launch({
-      // headless: true,
+      headless: true,
       args: ['--no-sandbox', '--disable-extensions', '--disable-setuid-sandbox',],
       timeout: PUPPETEER_TIMEOUT,
     });
 
     const page = await browser.newPage();
+    await page.setViewport({ width: 1600, height: 900 });
     const customPage = new CustomPage(browser, page);
 
     return new Proxy(customPage, {
@@ -64,21 +65,13 @@ class CustomPage {
   }
 
   /**
-   * @param {Date(YYYYMMDD)} targetDate 
+    * @param {int} targetHours - today: 9, tomorrow: 33, two days later: 57
    */
-  async gotoChannelGuidePage(targetDate) {
+  async gotoChannelGuidePage() {
     try {
       await this.page.goto('https://www.lguplus.com/iptv/channel-guide', { waitUntil: "networkidle2" });
       await this.page.click('.c-tab-slidemenu > ul > li:nth-child(2)');
       await this.page.waitForSelector('.c-tabcontent-box div h3');
-
-      if (targetDate === undefined || targetDate === null) {
-        await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(7)');
-        await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(7).is-active');
-      } else if (targetDate === "two") {
-        await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(8)');
-        await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(8).is-active');
-      }
     } catch (err) {
       // console.error('error Occured in gotoChannelGuidePage function', err);
       functions.logger.error('Error on gotoChannelGuidePage function', err);
@@ -87,18 +80,11 @@ class CustomPage {
 
   /**
    * @param {Array: string} broadcastorLists 
-   * @param {Date(YYYYMMDD)} targetDate 
+   * @param {int} targetHours - today: 9, tomorrow: 33, two days later: 57
    * @returns {Map} Tv guides group by Broadcastor
    */
-  async getSchedules(broadcastorLists, targetDate) {
+  async getSchedules(broadcastorLists, targetHours) {
     const tvGuideGroupByBroadcastorMap = new Map();
-
-    let targetHours = UTC9 + 24;
-    if (targetDate === 'today') {
-      targetHours = UTC9;
-    } else if (targetDate === "two") {
-      targetHours = UTC9 + 48;
-    }
 
     const currentDate = new Date();
     currentDate.setHours(currentDate.getHours() + targetHours);
@@ -121,8 +107,6 @@ class CustomPage {
       ['TV조선', 176, `.result-area > ul > li:nth-child(76)`],
     ];
 
-    // 남은 작업들이 들어오니까 그냥 그대로 넘겨주면 됨. 앞에선 안맞는것만 필터링했잖아
-
     const targets = (broadcastorLists && broadcastorLists.length > 0) ? defaultBroadcastorSet.filter(el => broadcastorLists.includes(el[0])) : defaultBroadcastorSet;
 
     try {
@@ -130,14 +114,25 @@ class CustomPage {
         await this.page.click(targets[br][2]);
         await this.page.waitForSelector('.c-tabcontent-box div h3');
 
+        if (targetHours === 9) {
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(6).is-active');
+        } else if (targetHours === 33) {
+          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(7)');
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(7).is-active');
+        } else if (targetHours === 57) {
+          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(8)');
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(8).is-active');
+        }
+
         const broadcastor = targets[br][0];
 
         const scheduleSet = await this.page.evaluate(({ broadcastor, targetDayString, dayOfWeek }) => {
           const RGX_specialRemover = /[\{\}\[\]\(\)\<\>\|\\\=\'\"]/g;
           const RGX_starting = /[1]부/g;
           const RGX_continue = /[2-9]부/g;
-          const RGX_inning = /\d+[회화]/g;
+          const RGX_inning = /제\d+[회화]|\d+[회화]/g;
           const RGX_isRe = /\<재\>\s?$/g;
+
           const RGX_special = /\s스페셜\s?$/g;
           const RGX_braket = /.\[.+.*\]?/g;
           const RGX_parenthese = /\(.+.*\)?/g;
@@ -226,8 +221,16 @@ class CustomPage {
           return filteredScheduleTable;
         }, { broadcastor, targetDayString, dayOfWeek });
 
-        await this.page.waitForSelector('.c-tabcontent-box div h3');
-        await this.page.click('.slide-area > div:nth-child(1) > .swiper-container > .swiper-wrapper > li:nth-child(7)');
+        if (targetHours === 9) {
+          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(7)');
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(7).is-active');
+        } else if (targetHours === 33) {
+          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(8)');
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(8).is-active');
+        } else if (targetHours === 57) {
+          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(9)');
+          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(9).is-active');
+        }
 
         const endTime = await this.page.evaluate(() => {
           const continueRegex = /^.+[2-9]+부/g;

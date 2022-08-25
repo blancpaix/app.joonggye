@@ -278,9 +278,6 @@ exports.addScheduleDataInDB = async (scheduleData, programData) => {
         createWeeklySchedule(scheduleUID, programData, filteredScheduleData);
         return;
       })
-      .then(() => {
-        return;
-      })
       .catch(() => {
         // console.error(`ERR@addScheduleDataInDB`);
         functions.logger.error(`ERR@addScheduleDataInDB : ${programData.broadcastor}_${programData.title}  `)

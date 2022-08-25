@@ -7,10 +7,10 @@ const Page = require('./index');
 // 10 comp Duration : 38329ms
 /**
  * @param {Array: string} lists 
- * @param {Date(YYYYMMDD)} targetDate 
+ * @param {int} targetHours - 9, 33, 57
  * @returns {Map} Tv guides grouped by Broadcastor
  */
-exports.fetchAirTable = async (lists, targetDate) => {
+exports.fetchAirTable = async (lists, targetHours) => {
   let result;
 
   try {
@@ -18,10 +18,9 @@ exports.fetchAirTable = async (lists, targetDate) => {
     if (page.url().includes('accounts.google.com/') && page.url().includes('signin')) {
       await page.signinGoogle();
     }
-    await page.gotoChannelGuidePage(targetDate);
+    await page.gotoChannelGuidePage();
 
-    result = await page.getSchedules(lists, targetDate);
-    functions.logger.info('Crawler result in target/fetchAirTable: ', result.size);
+    result = await page.getSchedules(lists, targetHours);
     await page.closeBrowser();
   } catch (err) {
     functions.logger.error('Error Occured in runCrawler Function!', err);
@@ -47,7 +46,6 @@ exports.fetchUplusH3Content = async () => {
     }
     await page.gotoChannelGuidePage(url);
     result = await page.getContentsOf(selector ? selector : '.c-tabcontent-box div h3');
-    functions.logger.info('simple cralwer test result : ', result);
     await page.closeBrowser();
   } catch (err) {
     functions.logger.info('Tesing current Phase Error : ', err);

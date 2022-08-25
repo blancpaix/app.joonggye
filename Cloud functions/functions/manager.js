@@ -76,9 +76,9 @@ const saveCrawledData = async (tvGuideGroupByBroadcastorMap) => {
 /**
  * @param {Date(YYYYMMDD)} date 
  * @param {Array: string} dueList 
- * @param {string} targetDate - "today" || null || undefined || "two"
+ * @param {int} targetHours - 9, 33, 57
  */
-exports.runCralwer = async (date, dueList, targetDate) => {
+exports.runCralwer = async (date, dueList, targetHours) => {
   await initCrawler();
 
   const startTime = new Date();
@@ -87,10 +87,11 @@ exports.runCralwer = async (date, dueList, targetDate) => {
     crawlerResult.Success = [];
     crawlerResult.Fail = dueList ? dueList : BROADCASTOR_LIST;
 
-    const onairTable = await fetchAirTable(dueList, targetDate);
-    functions.logger.info('Crawled schedule count : ', onairTable.size);
-
+    const onairTable = await fetchAirTable(dueList, targetHours);
     functions.logger.info('Duration of fetcing schedules : ', new Date() - startTime + 'ms');
+    // console.log('onairTable ', onairTable);
+    const crawledList = [...onairTable.keys()];
+    functions.logger.info('info@Crawled schedule count : ', crawledList);
 
     await saveCrawledData(onairTable);
     functions.logger.info('Duration of Saving schedule data : ', new Date() - startTime + 'ms');
@@ -153,7 +154,7 @@ exports.runCralwer = async (date, dueList, targetDate) => {
     }
 
     Axios.post(
-      'https://hooks.slack.com/services/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',
+      process.env.WEBHOOK_URL,
       { blocks },
       {
         headers: { 'Content-Type': 'application/json' }
