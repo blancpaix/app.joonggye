@@ -14,7 +14,10 @@ const db = firebaseAdmin.database();
 const fs = firebaseAdmin.firestore();
 
 
-// data: socket.handshake.query(phoneNumber. userUID, displayNAme, photoURL )
+/**
+ * @param {object: { phoneNumber: string, userUID: string, displayName: string, photoURL?:string}} data - socket.handshake.query
+ * @returns boolean - 유저 정보 일치 여부
+ */
 exports.searchUser = async (data) => {
   const result = await firebaseAdmin.auth().getUser(data.userUID)
     .then((userRecord) => {
@@ -30,7 +33,10 @@ exports.searchUser = async (data) => {
 
   return result;
 }
-
+/**
+ * @param {string} namespace 
+ * @returns Array - 채팅방 목록
+ */
 exports.loadChatRooms = async (namespace) => {
   try {
     const roomSet = [];
@@ -38,7 +44,6 @@ exports.loadChatRooms = async (namespace) => {
       .once('value')
       .then(snapshot => {
         snapshot.forEach(el => {
-          // ?? 왜 ??
           if (el.val().state !== 0) {
             let pushData = {
               roomId: el.key,
@@ -60,6 +65,14 @@ exports.loadChatRooms = async (namespace) => {
   }
 };
 
+/**
+ * @param {string} scheduleUID 
+ * @param {string} userUID 
+ * @param {string} title 
+ * @param {string} password? 
+ * @param {int} max 
+ * @returns {object: {err?: string, key?: string}}
+ */
 exports.createRoom = async (scheduleUID, userUID, title, password, max) => {
   if (!scheduleUID || !title || !userUID) return;
   let result = {};
@@ -92,6 +105,11 @@ exports.createRoom = async (scheduleUID, userUID, title, password, max) => {
   }
 };
 
+/**
+ * @param {string} scheduleUID 
+ * @param {string} roomUID 
+ * @returns
+ */
 exports.hibernateRoom = (scheduleUID, roomUID) => {
   if (roomUID.length != 20) return;   // => regex 변환
   const chatRoomRef = db.ref(`chatRooms/${scheduleUID}/${roomUID}`);
@@ -100,6 +118,12 @@ exports.hibernateRoom = (scheduleUID, roomUID) => {
   });
 };
 
+/**
+ * @param {string} scheduleUID 
+ * @param {string} roomUID 
+ * @param {int} count 
+ * @returns 
+ */
 // Transaction 전환 - https://firebase.google.com/docs/database/admin/save-data?hl=ko
 exports.updateClientCount = (scheduleUID, roomUID, count) => {
   if (roomUID.length != 20) return;
@@ -109,6 +133,12 @@ exports.updateClientCount = (scheduleUID, roomUID, count) => {
   });
 };
 
+/**
+ * @param {string} userUID 
+ * @param {string} titleBroad 
+ * @param {string} msg 
+ * @param {int} count 
+ */
 exports.uploadAggro = (userUID, titleBroad, msg, count) => {
   console.log(userUID, titleBroad, msg, count);
   const aggroRef = fs.collection('aggros').doc(userUID).collection('lists');

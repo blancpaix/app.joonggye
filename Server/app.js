@@ -12,7 +12,7 @@ const Socket = require('./socket');
 const app = express();
 const PORT = process.env.PORT || 443;
 
-console.log('NODE_ENV', process.env.NODE_ENV);
+console.log('NODE_ENV : ', process.env.NODE_ENV);
 const sslCredentials = process.env.NODE_ENV === "dev" ?
   undefined
   :
@@ -23,7 +23,6 @@ const sslCredentials = process.env.NODE_ENV === "dev" ?
   };
 
 app.use(morgan(morganFormat, { stream: winstonLogger.stream }));
-
 app.use(helmet());
 app.use(cors({
   credentials: true

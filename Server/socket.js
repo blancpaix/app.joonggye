@@ -3,12 +3,14 @@ const shortid = require('shortid');
 
 const { searchUser, loadChatRooms, createRoom, hibernateRoom, uploadAggro, } = require('./FB_dataService');
 
-const fbRoom = new Map();
+const fbRoom = new Map();   // 채팅 목록인거고
 const aggroObj = new Object();
 const CACHE_TTL = 500;
 const AGGRO_TTL = 30000;
 
-
+/**
+ * @param {WebServer} server - Pass Express server instance 
+ */
 module.exports = (server) => {
   const io = socketIO(server, {
     path: '/jg',
@@ -55,7 +57,7 @@ module.exports = (server) => {
 
     const sockets = socket.nsp.sockets;
     // const adapter = socket.adapter; //  .nsp; //=== socket.nsp
-    const rooms = socket.adapter.rooms; // 현재 활성화 된 rooms, count 계산
+    const rooms = socket.adapter.rooms; // 현재 활성화 된 rooms => count 계산
 
     if (!fbRoom.has(namespace)) {
       const result = await loadChatRooms(namespace);
@@ -89,7 +91,9 @@ module.exports = (server) => {
       scheduleNsp.to(socket.id).emit('loadUsers', userList);
     });
 
-    // data: (scheduldUID, title, ?password, max)
+    /**
+     * @param {object: { scheduleUID: string, title: string, password?: string, max : int }}
+     */
     socket.on('createRoom', async (data) => {
       if (!data.scheduleUID || !data.title || data.max > 120) return;
       const { scheduleUID, title, password, max } = data;
@@ -119,7 +123,9 @@ module.exports = (server) => {
       }
     });
 
-    // data : (roomId, ?password)
+    /**
+     * @param {object: { roomId: string, password?: string }}
+     */
     socket.on('joinRoom', data => {
       if (!data) return;
       const targetRoom = fbRoom.get(namespace).find(el => el.roomId === data.roomId);
@@ -130,7 +136,6 @@ module.exports = (server) => {
         return;
       };
 
-      // 왜 여기가 문제지?
       if (countsInRoom) {
         targetRoom.count = countsInRoom.size;
         if (countsInRoom.size >= targetRoom.max) {
@@ -162,8 +167,9 @@ module.exports = (server) => {
       console.log('[JOIN]-rooms', rooms, '\n-clients', countsInRoom, new Date());
     });
 
-
-    // data : roomId
+    /**
+     * @param {string} roomId
+     */
     socket.on('leaveRoom', roomId => {
       if (!roomId) return;
       const exitUser = { userUID: socket.userUID, displayName: socket.displayName };
@@ -197,7 +203,14 @@ module.exports = (server) => {
       }
     });
 
-
+    /**
+     * @param {string} reason - socket disconnection reasion
+     *   io server disconnect  = The server forcefully disconnected the socket with socket.discconnect()
+     *   io client disconnect = The socket was manually disconnected using socket.disconnect()
+     *   ping timeout = The server did not respond in the pingTimeout range
+     *   transport close  = The conneciton was closed (example : the user has lost conneciton, or the network was changed from WIFI to 4g)
+     *   transport error = The connection has encounterd an error (example: trhe server was killed during HTTP long-polling cycle)
+     */
     socket.on('disconnect', reason => {
       if (socket.rm === namespace) return;
       const exitUser = { userUID: socket.userUID, displayName: socket.displayName };
@@ -226,21 +239,22 @@ module.exports = (server) => {
       }
 
       console.log(`[DISCONNECTION] NSP // UID ${namespace} // ${socket.userUID} \n REASON: ${reason} :: ${new Date()}`);
-      /*  Reason
-        io server disconnect  = The server forcefully disconnected the socket with socket.discconnect()
-        io client disconnect = The socket was manually disconnected using socket.disconnect()
-        ping timeout = The server did not respond in the pingTimeout range
-        transport close  = The conneciton was closed (example : the user has lost conneciton, or the network was changed from WIFI to 4g)
-        transport error = The connection has encounterd an error (example: trhe server was killed during HTTP long-polling cycle)
-      */
       delete socket.rm;
       delete socket.displayName;
       delete socket.userUID;
       if (socket.photoURL) delete socket.photoURL;
     });
 
-
-    // data : (type : 'a' ? type, titleBroad : type, msg, userUID, displayName, roomId,)
+    /**
+     * @param {object: {
+     *  type: string,
+     *  titleBroad: string,
+     *  msg : string,
+     *  userUID: string,
+     *  displayName: string,
+     *  roomId : string,
+     * }}
+     */
     socket.on('chat', data => {
       if (socket.rm !== data.roomId || socket.rm === namespace) return;
       console.log('[CHAT] socket.rm', socket.rm, '\t NSP: ', namespace, '\t', data,);
@@ -270,39 +284,48 @@ module.exports = (server) => {
     });
 
 
-    // 과부하 방지를 위해 500ms 주기로 전송
-    // data : aggroUID
-    socket.on('aggroUp', async data => {
+    // 과부하 방지를 위해 500ms 주기로 전송~~
+    /**
+     * @param {string} aggroUID
+     */
+    socket.on('aggroUp', async aggroUID => {
       if (socket.rm === namespace) return;
       const target = aggroObj[namespace][socket.rm];
-      if (!target || data !== target.aggroUID) return;
+      if (!target || aggroUID !== target.aggroUID) return;
 
       if (target && target.queing) {
         target.point++;
       } else if (target && !target.queing) {
         target.point++;
         target.queing = true;
-        await timerSender(scheduleNsp, namespace, socket.rm, data);
+        await timerSender(scheduleNsp, namespace, socket.rm, aggroUID);
       }
     });
 
-    socket.on('aggroDown', async data => {
+    /**
+     * @param {string} aggroUID
+     */
+    socket.on('aggroDown', async aggroUID => {
       if (socket.rm === namespace) return;
       const target = aggroObj[namespace][socket.rm];
-      if (!target || data !== target.aggroUID) return;
+      if (!target || aggroUID !== target.aggroUID) return;
 
       if (target && target.queing) {
         target.point--;
       } else if (target && !target.queing) {
         target.point--;
         target.queing = true;
-        await timerSender(scheduleNsp, namespace, socket.rm, data);
+        await timerSender(scheduleNsp, namespace, socket.rm, aggroUID);
       };
     });
   });
 };
 
 
+/**
+ * @param {string} namespace 
+ * @returns {Arrray} 현재 네임스페이스의 활성화된 채팅방 목록
+ */
 const getRoomList = (namespace) => {
   let roomList = [];
   if (fbRoom.get(namespace)) {
@@ -321,6 +344,13 @@ const getRoomList = (namespace) => {
   }
 };
 
+/**
+ * @param {string} namespace 
+ * @param {string} roomId 
+ * @param {string} userUID 
+ * @param {string} titleBroad 
+ * @returns {string} aggroUID
+ */
 const aggroInitializer = (namespace, roomId, userUID, titleBroad) => {
   const aggroUID = shortid.generate();
 
@@ -336,6 +366,16 @@ const aggroInitializer = (namespace, roomId, userUID, titleBroad) => {
   return aggroUID;
 };
 
+/**
+ * @param {string} scheduleNsp 
+ * @param {string} namespace 
+ * @param {object: {
+ *  userUID: string,
+ *  msg : string,
+ *  titleBroad : string,
+ *  point: int
+ * }} data 
+ */
 const aggroBreaker = (scheduleNsp, namespace, data) => {
   setTimeout(() => {
     scheduleNsp.to(data.roomId).emit('stopAggro', data.aggroUID);
@@ -346,12 +386,18 @@ const aggroBreaker = (scheduleNsp, namespace, data) => {
   }, AGGRO_TTL);
 };
 
-const timerSender = async (scheduleNsp, namespace, roomId, data) => {
+/**
+ * @param {string} scheduleNsp 
+ * @param {string} namespace 
+ * @param {string} roomId 
+ * @param {string} aggroUID 
+ */
+const timerSender = async (scheduleNsp, namespace, roomId, aggroUID) => {
   setTimeout(() => {
     const target = aggroObj[namespace][roomId];
     if (target) {
       target.queing = false;
-      scheduleNsp.to(roomId).emit('aggroPoint', { aggroUID: data, point: target.point });
+      scheduleNsp.to(roomId).emit('aggroPoint', { aggroUID, point: target.point });
     }
   }, CACHE_TTL)
 };

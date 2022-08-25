@@ -2,7 +2,13 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 
-// param: { displayName, photoURL }
+/**
+ * @param {object: {
+ *  displayName: string,
+ *  photoURL?: string
+ * }} updateInfo 
+ * @returns {boolean} 업데이트 여부
+ */
 export const FB_updateProfile = async (updateInfo) => {
   const result = await auth().currentUser.updateProfile(updateInfo)
     .then(() => {
@@ -15,6 +21,13 @@ export const FB_updateProfile = async (updateInfo) => {
   return result;
 };
 
+/**
+ * @param {object: {
+ *  phoneNumber: string,
+ *  img: object
+ * }} updateInfo 
+ * @returns {string} 파일이름
+ */
 // param: { phoneNumber: String, img: Object }
 export const FB_uploadProfileImg = async ({ phoneNumber, img }) => {
   const uploadPath = storage().ref(`thn128/${phoneNumber}_${img.modificationDate}.png`);
@@ -37,6 +50,10 @@ export const FB_dropout = async () => {
     });
 };
 
+/**
+ * @param {string} programUID 
+ * @returns {int} 해당 프로그램의 좋아요 수
+ */
 export const FB_loadFavCnt = async (programUID) => {
   const favCntRef = firestore().collection('favoriteCounts').doc(programUID);
   const countData = await favCntRef
@@ -48,6 +65,11 @@ export const FB_loadFavCnt = async (programUID) => {
   return countData.data().likes;
 };
 
+/**
+ * @param {string} userUID 
+ * @param {string} programUID 
+ * @param {string} titleBroad 
+ */
 export const FB_trxAddFavProgram = async (userUID, programUID, titleBroad) => {
   const increment = firestore.FieldValue.increment(1);
   const favCntRef = firestore().collection('favoriteCounts').doc(programUID);
@@ -69,6 +91,10 @@ export const FB_trxAddFavProgram = async (userUID, programUID, titleBroad) => {
     });
 };
 
+/**
+ * @param {string} userUID 
+ * @param {string} programUID 
+ */
 export const FB_trxDelFavProgram = async (userUID, programUID) => {
   const decrement = firestore.FieldValue.increment(-1);
   const favCntRef = firestore().collection('favoriteCounts').doc(programUID);
@@ -88,6 +114,10 @@ export const FB_trxDelFavProgram = async (userUID, programUID) => {
     });
 };
 
+/**
+ * @param {string} programName 
+ * @returns {Array: Program} 프로그램 검색 결과 목록
+ */
 export const FB_searchByTitle = async (programName) => {
   const result = [];
   await firestore().collection('programs').orderBy('title')
@@ -107,12 +137,20 @@ export const FB_searchByTitle = async (programName) => {
   return result;
 }
 
+/**
+ * @param {string} dateBroadcastor
+ * @returns {Array: schedule} 방송사의 해당일자 방송 편성표
+ */
 export const FB_loadAirTable = async (dateBroadcastor) => {
   const airTable = await firestore().collection('airTable').doc(`${dateBroadcastor}`).get();
   if (!airTable.exists) throw '방송사의 데이터를 찾을 수 없습니다.';
   return airTable.data();
 };
 
+/**
+ * @param {string} userUID 
+ * @returns {Array: Favorites} 좋아하는 프로그램 목록
+ */
 export const FB_loadFavorites = async (userUID) => {
   const ref = firestore().collection('favorites').doc(userUID).collection('lists');
   const dataArr = [];
@@ -144,6 +182,10 @@ let limitCount = 12;
 let lastLoadedAggro = null;
 let isEndAggros = false;
 
+/**
+ * @param {string} userUID 
+ * @returns {Array: Aggro} 해당 유저의 저장된 어그로 목록
+ */
 export const FB_loadAggros = async (userUID) => {
   const ref = firestore().collection('aggros').doc(userUID).collection('lists').orderBy('rCreatedAt').limit(limitCount).startAfter(lastLoadedAggro);
   const aggros = await ref.get()
@@ -176,6 +218,9 @@ export const FB_loadAggros = async (userUID) => {
   return { aggros, isEnd: isEndAggros }
 }
 
+/**
+ * @returns {Array: Notice} 공지사항 목록
+ */
 export const FB_loadNotices = async () => {
   const ref = firestore().collection('notices').orderBy('rCreatedAt').limit(limitCount);
   const notices = await ref.get()
@@ -202,6 +247,9 @@ export const FB_loadNotices = async () => {
   return notices;
 };
 
+/**
+ * @returns {Terms} 서비스 이용약관
+ */
 export const FB_loadTerms = async () => {
   const termRef = firestore().collection('terms').doc('service');
   const result = await termRef.get().then((doc) => {

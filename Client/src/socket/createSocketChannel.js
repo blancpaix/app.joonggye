@@ -3,7 +3,10 @@ import socketIO from 'socket.io-client';
 
 import firestore from '@react-native-firebase/firestore';
 
-
+/**
+ * @param {string} code 
+ * @returns {string} Error message
+ */
 const ERR_CODE = (code) => {
   switch (code) {
     case 'EJ001':
@@ -19,7 +22,10 @@ const ERR_CODE = (code) => {
   }
 };
 
-// 방송중인 프로그램 실시간 업데이트
+/**
+ * 방송중인 프로그램 정보 실시간 수신채널 생성
+ * @returns eventChannel
+ */
 export const createScheduleChannel = () => {
   const scheduleRef = firestore().collection('onAir').orderBy('endAt')
 
@@ -59,8 +65,8 @@ export const createScheduleChannel = () => {
   })
 };
 
-const SOCKET_SERVER = 'https://www.joonggye.live'
-// const LOCAL_SERVER = 'http://10.0.2.2:3000';
+// const SOCKET_SERVER = 'https://www.joonggye.live'
+const LOCAL_SERVER = 'http://10.0.2.2:3000';
 
 export let socket;
 
@@ -77,10 +83,22 @@ export function closeChannel(channel) {
 
 const defaultMatcher = () => true;
 
-// called when user press the on-air program
+/**
+ * 해당 방송 프로그램 수신채널 생성
+ * @param {object:{
+ *  namespace: string,
+ *  userUID: string,
+ *  displayName: string,
+ *  photoURL?: string,
+ *  phoneNumber: string,
+ * }} data 
+ * @param {object} buffer 
+ * @returns eventChannel
+ */
 export const createChannel = (data, buffer, matcher) => {
   const { namespace, userUID, displayName, photoURL, phoneNumber } = data;
-  socket = socketIO(`${SOCKET_SERVER}/${namespace}`, {
+  // socket = socketIO(`${SOCKET_SERVER}/${namespace}`, {
+  socket = socketIO(`${LOCAL_SERVER}/${namespace}`, {
     path: '/jg',
     transports: ['websocket'],
     query: {
@@ -121,6 +139,11 @@ export const createChannel = (data, buffer, matcher) => {
   }, buffer || buffers.none(), matcher || defaultMatcher);
 };
 
+/**
+ * 채팅방 목록 수신채널 생성
+ * @param {object} buffer 
+ * @returns eventChannel
+ */
 export const createRoomChannel = (buffer, matcher) => {
 
   return eventChannel(emit => {
@@ -161,6 +184,11 @@ export const createRoomChannel = (buffer, matcher) => {
 // 현재 채팅방의 차단된 유저 목록
 export const blockedUserSet = new Map();
 
+/**
+ * 해당 채팅방의 유저 및 기타 정보 수신채널 생성
+ * @param {object} buffer 
+ * @returns eventChannel
+ */
 export const createChatChannel = (buffer, matcher) => {
 
   return eventChannel(emit => {
@@ -214,6 +242,11 @@ export const createChatChannel = (buffer, matcher) => {
   }, buffer || buffers.none(), matcher || defaultMatcher)
 };
 
+/**
+ * 해당 채팅방의 채팅메시지 수신채널 생성
+ * @param {object} buffer 
+ * @returns eventChannel
+ */
 export const createMsgChannel = (buffer, matcher) => {
 
   return eventChannel(emit => {
@@ -232,6 +265,11 @@ export const createMsgChannel = (buffer, matcher) => {
   }, buffer || buffers.none(), matcher || defaultMatcher)
 };
 
+/**
+ * 해당 채팅방의 어그로 포인트 수신채널 생성
+ * @param {object} buffer 
+ * @returns eventChannel
+ */
 export const createAggroPointChannel = (buffer, matcher) => {
   return eventChannel(emit => {
     socket.on('aggroPoint', emit);
@@ -248,13 +286,25 @@ export function loadRoomFunc() {
   socket.emit('loadRooms');
 };
 
-// data : { scheduleUID, title, max, [password]}
+/**
+ * @param {object: {
+ *  scheduleUID: string,
+ *  title: string,
+ *  max: int,
+ *  password?: string,
+ * }} data 
+ */
 export function createRoomFunc(data) {
   if (!socket.connected) return;
   socket.emit('createRoom', data)
 };
 
-// data: { roomId, password }
+/**
+ * @param {object: {
+ *  roomId: string,
+ *  password?: string
+ * }} data 
+ */
 export function joinRoomFunc(data) {
   if (!socket.connected) return;
   if (!data.password) delete data.password;
@@ -266,21 +316,33 @@ export function loadUsersFunc() {
   socket.emit('loadUsers');
 };
 
+/**
+ * @param {string} roomUID 
+ */
 export function leaveRoomFunc(roomUID) {
   if (!socket.connected) return;
   socket.emit('leaveRoom', roomUID);
 };
 
-// message : { type, roomId, msg, userUID, }
+/**
+ * @param {string} message 
+ */
 export function sendMsg(message) {
   if (!socket.connected) return;
   socket.emit('chat', message);
 };
 
+/**
+ * @param {string} aggroUID 
+ */
 export function sendAggroUp(aggroUID) {
   if (!socket.connected) return;
   socket.emit('aggroUp', aggroUID);
 };
+
+/**
+ * @param {string} aggroUID 
+ */
 export function sendAggroDown(aggroUID) {
   if (!socket.connected) return;
   socket.emit('aggroDown', aggroUID);
