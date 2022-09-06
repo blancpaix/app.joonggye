@@ -112,22 +112,22 @@ exports.pauseCrawler = async () => {
 };
 
 /**
- * @param {Date(YYYYMMDD)} date 
+ * @param {Date(YYYYMMDD)} transformedDate 
  * new Date().toISOString().substring(0,10).replace(/-/g,'');
  * @param {Array: string} dueList 
  * @returns {boolean} - 크롤링 비활성화
  */
-exports.completeCrawler = async (date, dueList) => {
+exports.completeCrawler = async (transformedDate, dueList) => {
   const result = await fs.collection('crawler').doc('state')
     .set({
       crawling: false
     })
     .then(() => {
-      createCrawlDate(date, dueList);
+      createCrawlDate(transformedDate, dueList);
       return true;
     })
     .catch((err) => {
-      functions.logger.error(`ERR@FS [SET /completeCrawler] : `, date, err);
+      functions.logger.error(`ERR@FS [SET /completeCrawler] : `, transformedDate, err);
       return false;
     });
 
@@ -151,7 +151,7 @@ const createCrawlDate = async (date, dueList) => {
 };
 
 /**
- * @param {Date(YYYYMMDD)} date 
+ * @param {Date(YYYY-MM-DD)} date 
  * @returns {Array:string || false || null}
  * 해당일자 크롤링 기록 존재 && 남은 크롤링 목록 존재 : Array
  * 해당일자 크롤링 기록 존재 && 남은 크롤링 목록 없음 : false
@@ -180,6 +180,11 @@ exports.getCrawlingDueList = async (date) => {
   }
 };
 
+
+
+
+
+// TEST colleciton modified
 /**
  * @param {string} broadTitle 
  * @returns Program data
@@ -238,6 +243,7 @@ exports.createFavoriteProgramCountor = async (programUID) => {
 };
 
 /**
+ * 바뀐게 없는데 왜 시간을 이상하게 바꾸지??
  * @param {object: {
  *  subTitle1?: string,
  *  subTitle2?: string,
@@ -251,13 +257,19 @@ exports.createFavoriteProgramCountor = async (programUID) => {
 exports.addScheduleDataInDB = async (scheduleData, programData) => {
   let scheduleUID;
 
+  // UTC9기반으로 만들어진 편성표 저장 시 UTC로 인식하고 저장됨 => 한국에서 데이터를 보면 UTC +18임... 그래서 강제로 -9시간 빼서 UTC 시간으로 넣어줌
+  const startAtUTC9 = new Date(scheduleData.sDate + " " + scheduleData.sTime);
+  startAtUTC9.setHours(startAtUTC9.getHours() - 9);
+  const endAtUTC9 = new Date(scheduleData.eDate + " " + scheduleData.eTime);
+  endAtUTC9.setHours(endAtUTC9.getHours() - 9);
+
   const filteredScheduleData = {
     subTitle1: scheduleData.subTitle1,
     subTitle2: scheduleData.subTitle2,
     re: scheduleData.re,
     special: scheduleData.special,
-    startAt: firestore.Timestamp.fromDate(new Date(scheduleData.sDate + " " + scheduleData.sTime)),
-    endAt: firestore.Timestamp.fromDate(new Date(scheduleData.eDate + " " + scheduleData.eTime)),
+    startAt: firestore.Timestamp.fromDate(startAtUTC9),
+    endAt: firestore.Timestamp.fromDate(endAtUTC9),
   };
   if (filteredScheduleData.re) filteredScheduleData.re = true;
   if (filteredScheduleData.special) filteredScheduleData.special = true;
@@ -330,7 +342,7 @@ const createWeeklySchedule = async (scheduleUID, programData, scheduleData) => {
  * @param {string} scheduleUID 
  */
 const createChatRoom = async (programData, scheduleUID) => {
-  const chatRoomKey = admin.database().ref(`chatRooms/${scheduleUID}`).push().key;
+  const chatRoomKey = admin.database().ref(`chatRoomsTEST/${scheduleUID}`).push().key;
   db.ref(`chatRooms/${scheduleUID}/${chatRoomKey}`)
     .set({
       roomId: chatRoomKey,
@@ -361,14 +373,18 @@ exports.addTvGuideInDB = async (scheduleSet, broadcastor, tvGuideGroupByBroadcas
   let broadcastorAirTable = [];
 
   scheduleSet.map(el => {
-    broadcastorAirTable.push({
+    const schedule = {
       title: el.title,
       sTime: el.sTime,
       limit: el.limit,
       genre: el.genre,
       subTitle1: el.subTitle1,
       subTitle2: el.subTitle2,
-    })
+    };
+    if (el.re) {
+      schedule.re = true;
+    }
+    broadcastorAirTable.push(schedule);
   });
 
   let result;

@@ -74,11 +74,12 @@ const saveCrawledData = async (tvGuideGroupByBroadcastorMap) => {
 };
 
 /**
- * @param {Date(YYYYMMDD)} date 
+ * Do not call this function in local machine
+ * @param {string} transformedDate (YYYY-MM-DD) 
  * @param {Array: string} dueList 
- * @param {int} targetHours - 9, 33, 57
+ * @param {Date} targetDate - Already added target Hours
  */
-exports.runCralwer = async (date, dueList, targetHours) => {
+exports.runCralwer = async (transformedDate, dueList, targetDate) => {
   await initCrawler();
 
   const startTime = new Date();
@@ -87,18 +88,19 @@ exports.runCralwer = async (date, dueList, targetHours) => {
     crawlerResult.Success = [];
     crawlerResult.Fail = dueList ? dueList : BROADCASTOR_LIST;
 
-    const onairTable = await fetchAirTable(dueList, targetHours);
-    functions.logger.info('Duration of fetcing schedules : ', new Date() - startTime + 'ms');
+    const onairTable = await fetchAirTable(dueList, targetDate);
+    functions.logger.info('info @ Duration of fetcing schedules : ', new Date() - startTime + 'ms');
     // console.log('onairTable ', onairTable);
     const crawledList = [...onairTable.keys()];
-    functions.logger.info('info@Crawled schedule count : ', crawledList);
+    functions.logger.info('info @ Crawled schedule count : ', crawledList);
 
     await saveCrawledData(onairTable);
-    functions.logger.info('Duration of Saving schedule data : ', new Date() - startTime + 'ms');
+    functions.logger.info('info @ Duration of Saving schedule data : ', new Date() - startTime + 'ms');
 
     const successList = JSON.stringify(crawlerResult.Success);
     const failList = JSON.stringify(crawlerResult.Fail);
-    await completeCrawler(date, crawlerResult.Fail);
+    // date를 전달받아야 하는데 이게 연동이 안되는게 문제임... 
+    await completeCrawler(transformedDate, crawlerResult.Fail);
 
     const blocks = [
       {
@@ -118,7 +120,7 @@ exports.runCralwer = async (date, dueList, targetHours) => {
         type: 'section',
         text: {
           type: "mrkdwn",
-          text: "Crawling Success lists :"
+          text: "Crawling Success lists : "
         }
       });
       blocks.push({
@@ -132,7 +134,6 @@ exports.runCralwer = async (date, dueList, targetHours) => {
         type: "divider"
       });
     }
-
     if (crawlerResult.Fail.length > 0) {
       blocks.push({
         type: 'section',

@@ -4,11 +4,11 @@ const { trxMoveOntimeSchedules, trxRemoveEndedPrograms, isCrawling, getCrawlingD
 const { UTC9, RGX_CHECK, RGX_TODAY, RGX_TWO, DEFAULT_TARGET_HOURS, } = require('./Constant');
 require('dotenv').config();
 
-// 시간은 region 상관없이 UTC로 입력됨. new Date() 마찬가지, 한국 시간쓰려면 UTC9 설정
+// 시간은 region 상관없이 UTC로 입력됨
 
 exports.scheduleUpdator = functions
   .region('asia-northeast3')
-  .pubsub.schedule('*/5 0-2,5-23 * * *')
+  .pubsub.schedule('*/5 * * * *')
   .timeZone('Asia/Seoul')
   .onRun(() => {
     functions.logger.log('START Schedule Updator');
@@ -26,22 +26,22 @@ exports.scheduleCralwer = functions
     maxInstances: 1,
   })
   .pubsub.schedule('0 2 * * *')
-  // .pubsub.schedule('*/30 2-6 * * *')   // call Crawler 가 완벽하게 작동하면 변경
   .timeZone('Asia/Seoul')
   .onRun(async () => {
     const targetDate = new Date();
-    targetDate.setHours(targetDate.getHours() + UTC9 + 24);
-    const date = new Date(targetDate).toISOString().substring(0, 10).replace(/-/g, '');
-    functions.logger.log('START Schedule Cralwer', new Date(), 'utc9+24 serverdate : ', date);
+    targetDate.setHours(targetDate.getHours() + DEFAULT_TARGET_HOURS);
+    // date : YYYY-MM-DD
+    const transformedDate = new Date(targetDate).toISOString().substring(0, 10);
+    functions.logger.log('START Schedule Cralwer', new Date());
 
     try {
-      const dueList = await getCrawlingDueList(date);
+      const dueList = await getCrawlingDueList(transformedDate);
       if (typeof dueList === 'boolean') {
         functions.logger.info('ERR-scheduleCralwer@Already done!');
         return false;
       }
 
-      await runCralwer(date, dueList);
+      await runCralwer(transformedDate, dueList, targetDate);
     } catch (err) {
       throw err;
     }
@@ -49,8 +49,9 @@ exports.scheduleCralwer = functions
     return null;
   });
 
+
 /**
- * @param {string} req.body.event.text : "UserUID OPTION"
+ * @param {string} req.body.event.text : "<UserUID> OPTION"
  * OPTION
  *  "today"             : 오늘의 편성표 
  *  "null || undefined" : 내일 편성표
@@ -99,8 +100,9 @@ exports.callcrawler = functions
 
     try {
       const targetDate = new Date();
-      targetDate.setHours(targetDate.getHours() + targetHours);
-      const date = new Date(targetDate).toISOString().substring(0, 10).replace(/-/g, '');
+      targetDate.setHours(targetDate.getHours() + targetHours);   // 한국시간으로 안해줌... 그래서 강제적으로 이렇게라도
+      // YYYY-MM-DD
+      const date = new Date(targetDate).toISOString().substring(0, 10);
       functions.logger.info('Target date, Options : ', date, targetHours);
       const dueList = await getCrawlingDueList(date);
 
@@ -109,7 +111,7 @@ exports.callcrawler = functions
         return res.status(406).send('Already done!');
       }
 
-      await runCralwer(date, dueList, targetHours);
+      await runCralwer(date, dueList, targetDate);
     } catch (err) {
       functions.logger.info('ERR@Cannot running crawler!', err);
       return res.status(503).send('crawling err!');
@@ -118,15 +120,17 @@ exports.callcrawler = functions
     return res.status(200).send('Done!');
   });
 
+
 // cloud functions, cloud scheduler 배포방식 동일
 // firebase deploy --only functions: functionName
 // firebase functions:delete [myFunction]
 
 // =local crawling
 // const targetDate = new Date();
-// targetDate.setHours(targetDate.getHours() + UTC9 + 24);
+// targetDate.setHours(targetDate.getHours() + DEFAULT_TARGET_HOURS);
+// console.log('kor time : ', new Date(targetDate).toISOString());
 // const date = new Date(targetDate).toISOString().substring(0, 10).replace(/-/g, '');
-// functions.logger.log('START Schedule Cralwer', new Date(), 'utc9+24 serverdate : ', date);
+// functions.logger.log('START Schedule Cralwer', targetDate, 'utc9+24 serverdate : ', date);
 
 // const dueList = null;
-// runCralwer(date, dueList, DEFAULT_TARGET_HOURS);
+// runCralwer(dueList, DEFAULT_TARGET_HOURS);

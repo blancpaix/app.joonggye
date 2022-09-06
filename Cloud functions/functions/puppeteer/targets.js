@@ -7,10 +7,10 @@ const Page = require('./index');
 // 10 comp Duration : 38329ms
 /**
  * @param {Array: string} lists 
- * @param {int} targetHours - 9, 33, 57
+ * @param {Date} targetDate - Already added target Hours (today: 9, tomorrow: 33, two days later: 57)
  * @returns {Map} Tv guides grouped by Broadcastor
  */
-exports.fetchAirTable = async (lists, targetHours) => {
+exports.fetchAirTable = async (lists, targetDate) => {
   let result;
 
   try {
@@ -20,7 +20,7 @@ exports.fetchAirTable = async (lists, targetHours) => {
     }
     await page.gotoChannelGuidePage();
 
-    result = await page.getSchedules(lists, targetHours);
+    result = await page.getSchedules(lists, targetDate);
     await page.closeBrowser();
   } catch (err) {
     functions.logger.error('Error Occured in runCrawler Function!', err);

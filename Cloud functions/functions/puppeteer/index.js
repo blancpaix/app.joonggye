@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const functions = require('firebase-functions');
 const { PUPPETEER_TIMEOUT } = require('../Constant');
 
+
 class CustomPage {
   constructor(browser, page) {
     this.browser = browser;
@@ -64,9 +65,7 @@ class CustomPage {
     return this.page.$eval(selector, el => el.innerHTML);
   }
 
-  /**
-    * @param {int} targetHours - today: 9, tomorrow: 33, two days later: 57
-   */
+  // 방송사 이름이 렌더링 될 때 까지 기다림
   async gotoChannelGuidePage() {
     try {
       await this.page.goto('https://www.lguplus.com/iptv/channel-guide', { waitUntil: "networkidle2" });
@@ -80,19 +79,21 @@ class CustomPage {
 
   /**
    * @param {Array: string} broadcastorLists 
-   * @param {int} targetHours - today: 9, tomorrow: 33, two days later: 57
+   * @param {Date} targetDate - Already added target Hours (today: 9, tomorrow: 33, two days later: 57)
    * @returns {Map} Tv guides group by Broadcastor
    */
-  async getSchedules(broadcastorLists, targetHours) {
+  async getSchedules(broadcastorLists, targetDate) {
     const tvGuideGroupByBroadcastorMap = new Map();
 
-    const currentDate = new Date();
-    currentDate.setHours(currentDate.getHours() + targetHours);
-    const nextDate = new Date();
-    nextDate.setHours(nextDate.getHours() + targetHours + 24);
+    const targetDateKorForm = targetDate.getMonth() + 1 + "월 " + targetDate.getDate() + "일";
 
-    const targetDayString = currentDate.toISOString().split('T')[0];
-    const dayOfWeek = currentDate.getDay();
+    const targetNextDate = new Date(targetDate);
+    targetNextDate.setHours(targetNextDate.getHours() + 24);
+    const targetNextDateKorForm = targetNextDate.getMonth() + 1 + "월 " + targetNextDate.getDate() + "일";
+
+    // YYYY-MM-DD
+    const targetDayString = targetDate.toISOString().split('T')[0];
+    const dayOfWeek = targetDate.getDay();
 
     const defaultBroadcastorSet = [
       ['SBS', 101, `.result-area > ul > li:nth-child(1)`],
@@ -114,15 +115,13 @@ class CustomPage {
         await this.page.click(targets[br][2]);
         await this.page.waitForSelector('.c-tabcontent-box div h3');
 
-        if (targetHours === 9) {
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(6).is-active');
-        } else if (targetHours === 33) {
-          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(7)');
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(7).is-active');
-        } else if (targetHours === 57) {
-          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(8)');
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(8).is-active');
+        const todayTarget = await this.page.$x("//div[contains(@class, 'c-tabmenu-tab')]/div[contains(@class, 'c-tab-slidemenu')]/ul/li/a[contains(., '" + targetDateKorForm + "')]");
+        if (todayTarget.length < 1) {
+          functions.logger.error('Fail to clicking schedule', targetDateKorForm, targets[br][0]);
+          continue;
         }
+        await todayTarget[0].click();
+        await this.page.waitForXPath("//div[contains(@class, 'c-tabmenu-tab')]/div[contains(@class, 'c-tab-slidemenu')]/ul/li[contains(@class, 'is-active')]/a[contains(., '" + targetDateKorForm + "')]")
 
         const broadcastor = targets[br][0];
 
@@ -151,7 +150,7 @@ class CustomPage {
 
           for (let i = 0; i < scheduleTable.length; i++) {
             if (i > 0) {
-              filteredScheduleTable[filteredScheduleTable.length - 1].eTime = scheduleTable[i].querySelector('tr > td:nth-child(1)').innerText.trim();   // endTime
+              filteredScheduleTable[filteredScheduleTable.length - 1].eTime = scheduleTable[i].querySelector('tr > td:nth-child(1)').innerText.substr(0, 5);   // endTime
               filteredScheduleTable[filteredScheduleTable.length - 1].eDate = targetDayString;                                            // endDate
             }
             let title = scheduleTable[i].querySelector('tr > td:nth-child(2)').firstChild.firstChild.data.trim();
@@ -160,7 +159,7 @@ class CustomPage {
             } else {
               isContinue = false;
             }
-            let sTime = scheduleTable[i].querySelector('tr > td:nth-child(1)').innerText.trim();                                          // startTime
+            let sTime = scheduleTable[i].querySelector('tr > td:nth-child(1)').innerText.substr(0, 5);                                          // startTime
             let subTitle1;
             let subTitle2;
             let special;
@@ -221,16 +220,15 @@ class CustomPage {
           return filteredScheduleTable;
         }, { broadcastor, targetDayString, dayOfWeek });
 
-        if (targetHours === 9) {
-          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(7)');
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(7).is-active');
-        } else if (targetHours === 33) {
-          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(8)');
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(8).is-active');
-        } else if (targetHours === 57) {
-          await this.page.click('.slide-area .c-tab-slidemenu > ul > li:nth-child(9)');
-          await this.page.waitForSelector('.slide-area .c-tab-slidemenu > ul > li:nth-child(9).is-active');
+
+        const tomorrowTarget = await this.page.$x("//div[contains(@class, 'c-tabmenu-tab')]/div[contains(@class, 'c-tab-slidemenu')]/ul/li/a[contains(., '" + targetNextDateKorForm + "')]");
+        if (tomorrowTarget.length < 1) {
+          functions.logger.error('Fail to clicking schedule', targetNextDateKorForm, targets[br][0]);
+          continue;
         }
+        await tomorrowTarget[0].click();
+        await this.page.waitForXPath("//div[contains(@class, 'c-tabmenu-tab')]/div[contains(@class, 'c-tab-slidemenu')]/ul/li[contains(@class, 'is-active')]/a[contains(., '" + targetNextDateKorForm + "')]")
+
 
         const endTime = await this.page.evaluate(() => {
           const continueRegex = /^.+[2-9]+부/g;
@@ -240,10 +238,10 @@ class CustomPage {
             if (!scheduleTable[i].querySelector('tr > td:nth-child(2)').firstChild.firstChild.data.match(continueRegex)) break;
           }
 
-          return scheduleTable[endAtIndex].querySelector('tr > td:nth-child(1)').innerText.trim();
+          return scheduleTable[endAtIndex].querySelector('tr > td:nth-child(1)').innerText.substr(0, 5);
         });
 
-        const targetNextDayString = nextDate.toISOString().split('T')[0];
+        const targetNextDayString = targetNextDate.toISOString().split('T')[0];
         scheduleSet[scheduleSet.length - 1].eDate = targetNextDayString;
         scheduleSet[scheduleSet.length - 1].eTime = endTime;
 
